@@ -14,12 +14,17 @@ type RouterConfig struct {
 func (routerConfig *RouterConfig) Initialize(platform FaaSPlatform) {
 	routerConfig.Platform = platform
 	routerConfig.Router = mux.NewRouter().StrictSlash(true)
-	routerConfig.initializeRoutes()
+	routerConfig.initializeOpenFaaSRoutes()
 
 }
 
-func (routerConfig *RouterConfig) initializeRoutes() {
-	routerConfig.Router.HandleFunc("/test", TestFn)
+func (routerConfig *RouterConfig) initializeFissionRoutes() {
+	routerConfig.Router.HandleFunc("/test", TestFission)
+
+}
+
+func (routerConfig *RouterConfig) initializeOpenFaaSRoutes() {
+	routerConfig.Router.HandleFunc("/test", TestOF)
 
 }
 
