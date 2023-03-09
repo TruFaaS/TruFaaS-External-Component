@@ -6,5 +6,5 @@ import (
 )
 
 func TestFn(w http.ResponseWriter, r *http.Request) {
-	fmt.Println("Endpoint hit: returnAllGroceries")
+	fmt.Println("Endpoint hit: ")
 }
