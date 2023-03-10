@@ -1,6 +1,7 @@
 package main
 
 import (
+	"fmt"
 	"github.com/gorilla/mux"
 	"log"
 	"net/http"
@@ -13,9 +14,10 @@ type RouterConfig struct {
 
 // Initialize initializes the router configuration
 func (routerConfig *RouterConfig) Initialize(platform FaaSPlatform) {
+	fmt.Println("Initializing Router")
 	routerConfig.Platform = platform
 	routerConfig.Router = mux.NewRouter().StrictSlash(true)
-	routerConfig.initializeOpenFaaSRoutes()
+	routerConfig.initializeFissionRoutes()
 
 }
 
@@ -26,6 +28,7 @@ func (routerConfig *RouterConfig) Run() {
 
 // Fission Routes
 func (routerConfig *RouterConfig) initializeFissionRoutes() {
+	fmt.Println("Initializing Fission Routes")
 	routerConfig.Router.HandleFunc("/test", TestFission)
 
 }
