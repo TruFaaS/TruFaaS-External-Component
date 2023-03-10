@@ -11,6 +11,7 @@ type RouterConfig struct {
 	Platform FaaSPlatform
 }
 
+// Initialize initializes the router configuration
 func (routerConfig *RouterConfig) Initialize(platform FaaSPlatform) {
 	routerConfig.Platform = platform
 	routerConfig.Router = mux.NewRouter().StrictSlash(true)
@@ -18,16 +19,18 @@ func (routerConfig *RouterConfig) Initialize(platform FaaSPlatform) {
 
 }
 
+// Run Starts the router
+func (routerConfig *RouterConfig) Run() {
+	log.Fatal(http.ListenAndServe(":8080", routerConfig.Router))
+}
+
+// Fission Routes
 func (routerConfig *RouterConfig) initializeFissionRoutes() {
 	routerConfig.Router.HandleFunc("/test", TestFission)
 
 }
 
+// OpenFaaS Routes
 func (routerConfig *RouterConfig) initializeOpenFaaSRoutes() {
-	routerConfig.Router.HandleFunc("/test", TestOF)
 
-}
-
-func (routerConfig *RouterConfig) Run() {
-	log.Fatal(http.ListenAndServe(":8080", routerConfig.Router))
 }

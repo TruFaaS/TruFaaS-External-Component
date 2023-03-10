@@ -2,6 +2,6 @@ package main
 
 func main() {
 	routerConfig := RouterConfig{}
-	routerConfig.Initialize(OpenFaaS)
+	routerConfig.Initialize(Fission)
 	routerConfig.Run()
 }
