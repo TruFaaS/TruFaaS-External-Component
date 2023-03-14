@@ -2,6 +2,7 @@ package main
 
 import (
 	"fmt"
+	fission "github.com/TruFaaS/TruFaaS/fission"
 	"github.com/gorilla/mux"
 	"log"
 	"net/http"
@@ -28,8 +29,8 @@ func (routerConfig *RouterConfig) Run() {
 
 // Fission Routes
 func (routerConfig *RouterConfig) initializeFissionRoutes() {
-	fmt.Println("Initializing Fission Routes")
-	routerConfig.Router.HandleFunc("/test", TestFission)
+	fmt.Println("Initializing fission Routes")
+	routerConfig.Router.HandleFunc("/fn/create", fission.Create).Methods(http.MethodPost)
 
 }
 
