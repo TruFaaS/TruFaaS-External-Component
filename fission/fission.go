@@ -7,11 +7,6 @@ import (
 	"net/http"
 )
 
-type Message struct {
-	Name string
-	Body string
-}
-
 // option 1 - recommended
 func Create(respWriter http.ResponseWriter, req *http.Request) {
 
@@ -24,9 +19,8 @@ func Create(respWriter http.ResponseWriter, req *http.Request) {
 		return
 	}
 
-	message := Message{Name: "saman", Body: "hello saman"}
 	//send a json response back
-	marshal, err := json.Marshal(message)
+	marshal, err := json.Marshal(function)
 	if err != nil {
 		return
 	}
