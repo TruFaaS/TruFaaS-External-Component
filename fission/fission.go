@@ -20,18 +20,18 @@ func Create(respWriter http.ResponseWriter, req *http.Request) {
 	}
 
 	//send a json response back
-	//marshal, err := json.Marshal(function)
-	//if err != nil {
-	//	return
-	//}
-	//respWriter.Header().Set("Content-Type", "application/json")
-	//respWriter.WriteHeader(http.StatusOK)
-	//_, err = respWriter.Write(marshal)
-	//if err != nil {
-	//	return
-	//}
+	marshal, err := json.Marshal(function)
+	if err != nil {
+		return
+	}
+	respWriter.Header().Set("Content-Type", "application/json")
+	respWriter.WriteHeader(http.StatusOK)
+	_, err = respWriter.Write(marshal)
+	if err != nil {
+		return
+	}
 
-	fmt.Printf("%#v", function)
+	//fmt.Printf("%#v", function)
 
 }
 
