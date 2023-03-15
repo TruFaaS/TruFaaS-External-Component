@@ -2,7 +2,8 @@ package main
 
 import (
 	"fmt"
-	fission "github.com/TruFaaS/TruFaaS/fission"
+	"github.com/TruFaaS/TruFaaS/constants"
+	"github.com/TruFaaS/TruFaaS/fission"
 	"github.com/gorilla/mux"
 	"log"
 	"net/http"
@@ -10,11 +11,11 @@ import (
 
 type RouterConfig struct {
 	Router   *mux.Router
-	Platform FaaSPlatform
+	Platform constants.FaaSPlatform
 }
 
 // Initialize initializes the router configuration
-func (routerConfig *RouterConfig) Initialize(platform FaaSPlatform) {
+func (routerConfig *RouterConfig) Initialize(platform constants.FaaSPlatform) {
 	fmt.Println("Initializing Router")
 	routerConfig.Platform = platform
 	routerConfig.Router = mux.NewRouter().StrictSlash(true)

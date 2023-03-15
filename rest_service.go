@@ -1,7 +1,9 @@
 package main
 
+import "github.com/TruFaaS/TruFaaS/constants"
+
 func main() {
 	routerConfig := RouterConfig{}
-	routerConfig.Initialize(Fission)
+	routerConfig.Initialize(constants.Fission)
 	routerConfig.Run()
 }
