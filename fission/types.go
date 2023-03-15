@@ -4,7 +4,6 @@ type Function struct {
 	FunctionInformation FunctionInformation `json:"function_information"`
 	PackageInformation  PackageInformation  `json:"package_information"`
 }
-
 type (
 	FunctionInformation struct {
 		Name      string       `json:"function_name"`
@@ -31,7 +30,7 @@ type (
 	PackageRef struct {
 		Namespace       string `json:"namespace"`
 		Name            string `json:"name"`
-		ResourceVersion string `json:"resource_version"`
+		ResourceVersion string `json:"resource_version,omitempty"`
 	}
 
 	InvokeStrategy struct {
