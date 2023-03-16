@@ -34,10 +34,11 @@ func Create(respWriter http.ResponseWriter, req *http.Request) {
 	}
 	mt = mt.AppendNewContent(fnByteArr)
 
-	fmt.Printf("%#v", mt.Root.Left)
+	fmt.Printf("%#v", mt)
 
 	err = utils.StoreMerkleTree(mt)
 	if err != nil {
+		println(err)
 		return
 	}
 
