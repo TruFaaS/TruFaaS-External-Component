@@ -27,16 +27,17 @@ func Create(respWriter http.ResponseWriter, req *http.Request) {
 	if err != nil {
 		return
 	}
-	//:TODO temp remove later if found a better approach
-	byteArr, err := json.Marshal(function)
-
-	mt = mt.AppendNewContent(byteArr)
+	// convert the function to byte[]
+	fnByteArr, err := json.Marshal(function)
+	if err != nil {
+		return
+	}
+	mt = mt.AppendNewContent(fnByteArr)
 
 	fmt.Printf("%#v", mt.Root.Left)
 
 	err = utils.StoreMerkleTree(mt)
 	if err != nil {
-
 		return
 	}
 
