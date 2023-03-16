@@ -1,4 +1,4 @@
-package main
+package constants
 
 type FaaSPlatform int
 
@@ -8,3 +8,6 @@ const (
 	OpenWhisk                         // EnumIndex = 2
 	OpenFaaS                          // EnumIndex = 3
 )
+
+const ContentTypeJSON = "application/json"
+const TreeStoreFileName = "tree.gob"
