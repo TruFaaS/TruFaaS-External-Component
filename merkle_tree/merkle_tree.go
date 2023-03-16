@@ -1,70 +1,71 @@
 package merkle_tree
 
 import (
+	"bytes"
 	"crypto/sha256"
-	"encoding/hex"
 	"fmt"
 	"hash"
 )
 
 // MerkleTree represents a Merkle tree
 type MerkleTree struct {
-	Root           *Node            // Root node of the Merkle tree
-	MerkleRootHash string           // Root hash of the Merkle tree
-	Leafs          []*Node          // Leaf nodes of the Merkle tree
-	HashStrategy   func() hash.Hash // Hash function used to compute Merkle tree hashes
+	Root           int       // Index of the root node in the nodes slice
+	MerkleRootHash []byte    // Root hash of the Merkle tree
+	Leafs          []int     // Indexes of the leaf nodes in the nodes slice
+	Nodes          []*Node   // Nodes in the Merkle tree
+	HashStrategy   hash.Hash // Hash function used to compute Merkle tree hashes
 }
 
 // Node represents a node in the Merkle tree
 type Node struct {
-	Parent *Node  // Pointer to the parent node
-	Left   *Node  // Pointer to the left child node
-	Right  *Node  // Pointer to the right child node
+	Parent int    // Index of the parent node in the nodes slice
+	Left   int    // Index of the left child node in the nodes slice
+	Right  int    // Index of the right child node in the nodes slice
 	Leaf   bool   // Indicates whether the node is a leaf node
 	Dup    bool   // Indicates whether the node is a duplicate leaf node
-	Hash   string // Hash value of the node
+	Hash   []byte // Hash value of the node
 }
 
 // NewTree creates a new Merkle Tree with default hash strategy of SHA256
 func NewTree() *MerkleTree {
-	var defaultHashStrategy = sha256.New
-	t := &MerkleTree{HashStrategy: defaultHashStrategy, Leafs: make([]*Node, 0)}
+	t := &MerkleTree{Nodes: make([]*Node, 0)}
 	return t
 }
 
 // MerkleRoot returns the root hash of the Merkle tree
-func (t *MerkleTree) MerkleRoot() string {
+func (t *MerkleTree) MerkleRoot() []byte {
 	return t.MerkleRootHash
 }
 
 // hashByteSlice returns the hash of a byte slice using the hash function specified in the Merkle tree
-func (t *MerkleTree) hashByteSlice(data []byte) string {
-	h := t.HashStrategy()
+func (t *MerkleTree) hashByteSlice(data []byte) []byte {
+	h := sha256.New()
 	h.Write(data)
-	return hex.EncodeToString(h.Sum(nil)[:])
+	return h.Sum(nil)[:]
 }
 
 // AppendNewContent builds a new tree with the new content and return the tree
 func (t *MerkleTree) AppendNewContent(content []byte) *MerkleTree {
 
 	leaf := &Node{
-		Parent: nil,
-		Left:   nil,
-		Right:  nil,
+		Parent: -1,
+		Left:   -1,
+		Right:  -1,
 		Leaf:   true,
 		Dup:    false,
 		Hash:   t.hashByteSlice(content),
 	}
-	leafs := updateLeafsSlice(t.Leafs, leaf)
+	t.Leafs, t.Nodes = updateLeafsSlice(t.Leafs, t.Nodes, leaf)
 
 	// Recursively build intermediate nodes until the root node is reached
-	root, err := buildIntermediate(leafs, t)
+	root, err := buildIntermediate(t.Leafs, t)
 
 	// Create the new tree
 	tree := &MerkleTree{
 		Root:           root,
-		MerkleRootHash: root.Hash,
-		Leafs:          leafs,
+		MerkleRootHash: t.Nodes[root].Hash,
+		Leafs:          t.Leafs,
+		Nodes:          t.Nodes,
 		HashStrategy:   t.HashStrategy,
 	}
 	if err != nil {
@@ -76,76 +77,103 @@ func (t *MerkleTree) AppendNewContent(content []byte) *MerkleTree {
 }
 
 // updateLeafsSlice add a new leaf to data structure, if odd number of leafs are present duplicates the last leaf
-func updateLeafsSlice(leafs []*Node, leaf *Node) []*Node {
-	if len(leafs) > 0 && leafs[len(leafs)-1].Dup {
+func updateLeafsSlice(leafs []int, nodes []*Node, leaf *Node) ([]int, []*Node) {
+	if len(leafs) > 0 && nodes[leafs[len(leafs)-1]].Dup {
 		leafs = leafs[:len(leafs)-1]
 	}
-	leafs = append(leafs, leaf)
-	if len(leafs)%2 == 1 {
-		duplicate := &Node{
-			Hash: leafs[len(leafs)-1].Hash,
-			Leaf: true,
-			Dup:  true,
-		}
-		leafs = append(leafs, duplicate)
+	var newNodes []*Node
+	for i := 0; i < len(leafs); i++ {
+		newNodes = append(newNodes, nodes[leafs[i]])
 	}
-	return leafs
+
+	leafs = append(leafs, len(leafs))
+	newNodes = append(newNodes, leaf)
+
+	// If odd number of leafs are present, duplicates the last leaf
+	if len(leafs)%2 != 0 {
+		lastLeaf := newNodes[leafs[len(leafs)-1]]
+		newLeaf := &Node{
+			Parent: -1,
+			Left:   -1,
+			Right:  -1,
+			Leaf:   true,
+			Dup:    true,
+			Hash:   lastLeaf.Hash,
+		}
+		newLeafIndex := len(newNodes)
+		newNodes = append(newNodes, newLeaf)
+		leafs = append(leafs, newLeafIndex)
+	}
+	return leafs, newNodes
 }
 
-// buildIntermediate constructs intermediate nodes in the Merkle tree
-func buildIntermediate(nodes []*Node, t *MerkleTree) (*Node, error) {
-	h := t.HashStrategy()
-	var newIntermediateNodes []*Node
-	for i := 0; i < len(nodes); i += 2 {
-		var left, right = i, i + 1
-		if i+1 == len(nodes) {
-			right = i
-		}
-		h.Reset()
-		h.Write([]byte(nodes[left].Hash))
-		h.Write([]byte(nodes[right].Hash))
-		n := &Node{
-			Left:  nodes[left],
-			Right: nodes[right],
-			Hash:  hex.EncodeToString(h.Sum(nil)[:]),
-		}
-		newIntermediateNodes = append(newIntermediateNodes, n)
-		nodes[left].Parent = n
-		nodes[right].Parent = n
-		if len(nodes) == 2 {
-			return n, nil
-		}
+// buildIntermediate recursively builds intermediate nodes until the root node is reached
+func buildIntermediate(nodesSlice []int, t *MerkleTree) (int, error) {
+
+	// If node slice have odd length make it even to loop through
+	if len(nodesSlice)%2 == 1 {
+		nodesSlice = append(nodesSlice, nodesSlice[len(nodesSlice)-1])
 	}
-	return buildIntermediate(newIntermediateNodes, t)
+	h := sha256.New()
+	var parents []int
+	for i := 0; i < len(nodesSlice); i += 2 {
+		left := nodesSlice[i]
+		right := nodesSlice[i+1]
+		h.Reset()
+		h.Write(t.Nodes[left].Hash)
+		h.Write(t.Nodes[right].Hash)
+		parent := &Node{
+			Parent: -1,
+			Left:   left,
+			Right:  right,
+			Leaf:   false,
+			Dup:    false,
+			Hash:   h.Sum(nil),
+		}
+		parentIndex := len(t.Nodes)
+		t.Nodes = append(t.Nodes, parent)
+		t.Nodes[left].Parent = parentIndex
+		t.Nodes[right].Parent = parentIndex
+		parents = append(parents, parentIndex)
+	}
+	if len(parents) == 1 {
+		return parents[0], nil
+	} else {
+		return buildIntermediate(parents, t)
+	}
 }
 
 // VerifyContentHash verifies the hash of a given content against the Merkle tree
-func (t *MerkleTree) VerifyContentHash(content []byte, rootHash string) bool {
+func (t *MerkleTree) VerifyContentHash(content []byte, rootHash []byte) bool {
 	// Find the leaf node that contains the matching hash
-	var node *Node
-	for _, n := range t.Leafs {
-		if n.Hash == t.hashByteSlice(content) {
-			node = n
+	leafNodeIndex := -1
+	hashVal := t.hashByteSlice(content)
+	for _, leafIndex := range t.Leafs {
+		if bytes.Equal(t.Nodes[leafIndex].Hash, hashVal) {
+			leafNodeIndex = leafIndex
+			break
 		}
 	}
-	if node == nil {
+	if leafNodeIndex == -1 {
 		return false
 	}
 
 	// Traverse the tree from the leaf node up to the root node
-	for node.Parent != nil {
-		left := node.Parent.Left
-		right := node.Parent.Right
+	nodeIndex := leafNodeIndex
+	for t.Nodes[nodeIndex].Parent != -1 {
+		parentIndex := t.Nodes[nodeIndex].Parent
+		leftIndex := t.Nodes[parentIndex].Left
+		rightIndex := t.Nodes[parentIndex].Right
 
 		// Hash the hashes of the left and right child nodes
-		h := t.HashStrategy()
-		h.Write([]byte(left.Hash))
-		h.Write([]byte(right.Hash))
-		hashVal := hex.EncodeToString(h.Sum(nil)[:])
+		h := sha256.New()
+		h.Write(t.Nodes[leftIndex].Hash)
+		h.Write(t.Nodes[rightIndex].Hash)
+		hashValue := h.Sum(nil)[:]
 
 		// If the computed hash matches the parent node's hash, continue up the tree
-		if hashVal == node.Parent.Hash {
-			node = node.Parent
+		if bytes.Equal(hashValue, t.Nodes[parentIndex].Hash) {
+			nodeIndex = parentIndex
 		} else {
 			// If the computed hash does not match the parent node's hash, the content has been tampered with
 			return false
@@ -153,15 +181,14 @@ func (t *MerkleTree) VerifyContentHash(content []byte, rootHash string) bool {
 	}
 
 	// If we've reached the root node and its hash matches the expected root hash, the content has not been tampered with
-	return node.Hash == rootHash
+	return bytes.Equal(t.Nodes[nodeIndex].Hash, rootHash)
 }
 
-// PrintLeafs prints leafs of the tree
-func (t *MerkleTree) PrintLeafs() {
+// PrintTreeNodes returns a string representation of the Merkle tree
+func (t *MerkleTree) PrintTreeNodes() {
 	s := ""
-	for _, l := range t.Leafs {
-		s += fmt.Sprint(l)
-		s += "\n"
+	for _, n := range t.Nodes {
+		s += fmt.Sprintf("%v\n", n)
 	}
 	fmt.Println(s)
 }
