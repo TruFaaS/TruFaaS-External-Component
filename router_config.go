@@ -31,7 +31,7 @@ func (routerConfig *RouterConfig) Run() {
 // Fission Routes
 func (routerConfig *RouterConfig) initializeFissionRoutes() {
 	fmt.Println("Initializing fission Routes")
-	routerConfig.Router.HandleFunc("/fn/create", fission.Create).Methods(http.MethodPost)
+	routerConfig.Router.HandleFunc("/fn/create", fission.CreateFnTrustValue).Methods(http.MethodPost)
 
 }
 

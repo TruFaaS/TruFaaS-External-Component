@@ -8,7 +8,7 @@ import (
 	"net/http"
 )
 
-func Create(respWriter http.ResponseWriter, req *http.Request) {
+func CreateFnTrustValue(respWriter http.ResponseWriter, req *http.Request) {
 
 	var function Function
 	var mt *merkleTree.MerkleTree
@@ -19,22 +19,22 @@ func Create(respWriter http.ResponseWriter, req *http.Request) {
 		fmt.Println(err)
 		return
 	}
-	// create a node in the merkel tree with the function
-	//steps:
-	//read the merkle tree and assign it to mt
-	//update the merkle tree and store it back
+	// retrieves already existing merkle tree
 	mt, err = utils.RetrieveMerkleTree()
 	if err != nil {
+		fmt.Println(err)
 		return
 	}
 	// convert the function to byte[]
 	fnByteArr, err := json.Marshal(function)
 	if err != nil {
+		fmt.Println(err)
 		return
 	}
+
 	mt = mt.AppendNewContent(fnByteArr)
 
-	fmt.Printf("%#v", mt)
+	fmt.Printf("%#v", mt.Nodes)
 
 	err = utils.StoreMerkleTree(mt)
 	if err != nil {
@@ -43,17 +43,10 @@ func Create(respWriter http.ResponseWriter, req *http.Request) {
 	}
 
 	//send a json response back
-	//marshal, err := json.Marshal(function)
-	//if err != nil {
-	//	return
-	//}
-	//respWriter.Header().Set("Content-Type", constants.ContentTypeJSON)
-	//respWriter.WriteHeader(http.StatusCreated)
-	//_, err = respWriter.Write(marshal)
-	//if err != nil {
-	//	return
-	//}
-
-	//fmt.Printf("%#v", function)
+	err = utils.SendSuccessResponse(respWriter, http.StatusCreated, nil)
+	if err != nil {
+		println(err)
+		return
+	}
 
 }
