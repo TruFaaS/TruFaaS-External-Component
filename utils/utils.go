@@ -55,13 +55,13 @@ func RetrieveMerkleTree() (*merkleTree.MerkleTree, error) {
 }
 
 // SendSuccessResponse : tos send the success response back to the client
-func SendSuccessResponse(respWriter http.ResponseWriter, statusCode int, msg *string) error {
+func SendSuccessResponse(respWriter http.ResponseWriter, statusCode int, msg string) error {
 
 	respWriter.Header().Set("Content-Type", constants.ContentTypeJSON)
 	respWriter.WriteHeader(statusCode)
 
-	if msg != nil {
-		_, err := respWriter.Write([]byte(*msg))
+	if msg != "nil" {
+		_, err := respWriter.Write([]byte(msg))
 		if err != nil {
 			return err
 		}
