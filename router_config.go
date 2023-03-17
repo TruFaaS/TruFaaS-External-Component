@@ -2,7 +2,8 @@ package main
 
 import (
 	"fmt"
-	fission "github.com/TruFaaS/TruFaaS/fission"
+	"github.com/TruFaaS/TruFaaS/constants"
+	"github.com/TruFaaS/TruFaaS/fission"
 	"github.com/gorilla/mux"
 	"log"
 	"net/http"
@@ -10,11 +11,11 @@ import (
 
 type RouterConfig struct {
 	Router   *mux.Router
-	Platform FaaSPlatform
+	Platform constants.FaaSPlatform
 }
 
 // Initialize initializes the router configuration
-func (routerConfig *RouterConfig) Initialize(platform FaaSPlatform) {
+func (routerConfig *RouterConfig) Initialize(platform constants.FaaSPlatform) {
 	fmt.Println("Initializing Router")
 	routerConfig.Platform = platform
 	routerConfig.Router = mux.NewRouter().StrictSlash(true)
@@ -30,7 +31,8 @@ func (routerConfig *RouterConfig) Run() {
 // Fission Routes
 func (routerConfig *RouterConfig) initializeFissionRoutes() {
 	fmt.Println("Initializing fission Routes")
-	routerConfig.Router.HandleFunc("/fn/create", fission.Create).Methods(http.MethodPost)
+	routerConfig.Router.HandleFunc("/fn/create", fission.CreateFnTrustValue).Methods(http.MethodPost)
+	routerConfig.Router.HandleFunc("/fn/verify", fission.VerifyFnTrustValue).Methods(http.MethodPost)
 
 }
 
