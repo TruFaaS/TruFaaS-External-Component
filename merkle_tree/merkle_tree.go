@@ -9,24 +9,23 @@ import (
 
 // MerkleTree represents a Merkle tree
 type MerkleTree struct {
-	Root           int       // Index of the root node in the nodes slice
-	MerkleRootHash []byte    // Root hash of the Merkle tree
-	Leafs          []int     // Indexes of the leaf nodes in the nodes slice
-	Nodes          []*Node   // Nodes in the Merkle tree
-	HashStrategy   hash.Hash // Hash function used to compute Merkle tree hashes
+	Nodes          []*Node // Nodes in the Merkle tree
+	RootIndex      int     // RootIndex is the index of the root node in the nodes slice
+	LeafCount      int     // LeafCount holds the number of leafs
+	MerkleRootHash []byte  // MerkleRootHash is the hash of the Merkle tree root
 }
 
 // Node represents a node in the Merkle tree
 type Node struct {
-	Parent int    // Index of the parent node in the nodes slice
-	Left   int    // Index of the left child node in the nodes slice
-	Right  int    // Index of the right child node in the nodes slice
+	Parent int    // Index of the parent node in the nodes slice, -1 if nil
+	Left   int    // Index of the left child node in the nodes slice, -1 if nil
+	Right  int    // Index of the right child node in the nodes slice, -1 if nil
 	Leaf   bool   // Indicates whether the node is a leaf node
 	Dup    bool   // Indicates whether the node is a duplicate leaf node
 	Hash   []byte // Hash value of the node
 }
 
-// NewTree creates a new Merkle Tree with default hash strategy of SHA256
+// NewTree creates a new Merkle Tree
 func NewTree() *MerkleTree {
 	t := &MerkleTree{Nodes: make([]*Node, 0)}
 	return t
@@ -37,9 +36,9 @@ func (t *MerkleTree) MerkleRoot() []byte {
 	return t.MerkleRootHash
 }
 
-// hashByteSlice returns the hash of a byte slice using the hash function specified in the Merkle tree
+// hashByteSlice returns the hash of a byte slice using the hash function
 func (t *MerkleTree) hashByteSlice(data []byte) []byte {
-	h := sha256.New()
+	h := newHashFunc()
 	h.Write(data)
 	return h.Sum(nil)[:]
 }
@@ -47,126 +46,136 @@ func (t *MerkleTree) hashByteSlice(data []byte) []byte {
 // AppendNewContent builds a new tree with the new content and return the tree
 func (t *MerkleTree) AppendNewContent(content []byte) *MerkleTree {
 
+	// Create new leaf
 	leaf := &Node{
-		Parent: -1,
-		Left:   -1,
-		Right:  -1,
+		Parent: -1, // Parent not set
+		Left:   -1, // Left not set
+		Right:  -1, // Right not set
 		Leaf:   true,
 		Dup:    false,
-		Hash:   t.hashByteSlice(content),
+		Hash:   t.hashByteSlice(content), // Hash value by hashing the content
 	}
-	t.Leafs, t.Nodes = updateLeafsSlice(t.Leafs, t.Nodes, leaf)
 
+	// Update the leaf count and nodes of tree
+	t.LeafCount, t.Nodes = updateLeafsAndNodes(t.LeafCount, t.Nodes, leaf)
+
+	// Leaf indices from [0,1..,t.leafCount]
+	leafIndices := make([]int, t.LeafCount)
+	for i := range leafIndices {
+		leafIndices[i] = i
+	}
 	// Recursively build intermediate nodes until the root node is reached
-	root, err := buildIntermediate(t.Leafs, t)
-
-	// Create the new tree
-	tree := &MerkleTree{
-		Root:           root,
-		MerkleRootHash: t.Nodes[root].Hash,
-		Leafs:          t.Leafs,
-		Nodes:          t.Nodes,
-		HashStrategy:   t.HashStrategy,
-	}
-	if err != nil {
-		return nil
-	}
+	t.RootIndex, _ = buildIntermediate(leafIndices, t)
+	t.MerkleRootHash = t.Nodes[t.RootIndex].Hash
 
 	// Return the tree
-	return tree
+	return t
 }
 
-// updateLeafsSlice add a new leaf to data structure, if odd number of leafs are present duplicates the last leaf
-func updateLeafsSlice(leafs []int, nodes []*Node, leaf *Node) ([]int, []*Node) {
-	if len(leafs) > 0 && nodes[leafs[len(leafs)-1]].Dup {
-		leafs = leafs[:len(leafs)-1]
-	}
-	var newNodes []*Node
-	for i := 0; i < len(leafs); i++ {
-		newNodes = append(newNodes, nodes[leafs[i]])
+// updateLeafsAndNodes add a new leaf to data structure and clear previously build intermediate nodes
+func updateLeafsAndNodes(leafCount int, nodes []*Node, leaf *Node) (int, []*Node) {
+
+	// This list stores list of leaf objects
+	var newLeafNodes []*Node
+
+	// If there are leafs check if last is a duplicate if so remove it
+	if leafCount > 0 && nodes[leafCount-1].Dup {
+		leafCount = leafCount - 1
 	}
 
-	leafs = append(leafs, len(leafs))
-	newNodes = append(newNodes, leaf)
+	// Add all the leafs to newLeafNodes from the previous nodes list
+	for i := 0; i < leafCount; i++ {
+		newLeafNodes = append(newLeafNodes, nodes[i])
+	}
 
-	// If odd number of leafs are present, duplicates the last leaf
-	if len(leafs)%2 != 0 {
-		lastLeaf := newNodes[leafs[len(leafs)-1]]
+	// Add the new leaf as a leaf
+	newLeafNodes = append(newLeafNodes, leaf)
+	leafCount += 1
+
+	// If odd number of leafIndices are present, duplicates the last leaf
+	if leafCount%2 != 0 {
+		lastLeaf := newLeafNodes[leafCount-1]
 		newLeaf := &Node{
 			Parent: -1,
 			Left:   -1,
 			Right:  -1,
 			Leaf:   true,
-			Dup:    true,
-			Hash:   lastLeaf.Hash,
+			Dup:    true,          // Duplicate
+			Hash:   lastLeaf.Hash, // Same hash as it is a duplicate
 		}
-		newLeafIndex := len(newNodes)
-		newNodes = append(newNodes, newLeaf)
-		leafs = append(leafs, newLeafIndex)
+		newLeafNodes = append(newLeafNodes, newLeaf)
+		leafCount += 1
 	}
-	return leafs, newNodes
+	return leafCount, newLeafNodes
 }
 
 // buildIntermediate recursively builds intermediate nodes until the root node is reached
-func buildIntermediate(nodesSlice []int, t *MerkleTree) (int, error) {
+func buildIntermediate(nodesIndexSlice []int, t *MerkleTree) (int, error) {
+
+	// Hash start
+	h := newHashFunc()
 
 	// If node slice have odd length make it even to loop through
-	if len(nodesSlice)%2 == 1 {
-		nodesSlice = append(nodesSlice, nodesSlice[len(nodesSlice)-1])
+	if len(nodesIndexSlice)%2 == 1 {
+		nodesIndexSlice = append(nodesIndexSlice, nodesIndexSlice[len(nodesIndexSlice)-1])
 	}
-	h := sha256.New()
-	var parents []int
-	for i := 0; i < len(nodesSlice); i += 2 {
-		left := nodesSlice[i]
-		right := nodesSlice[i+1]
+
+	var parentIndices []int
+
+	// Attempt to create parent for pairs of leafs
+	for i := 0; i < len(nodesIndexSlice); i += 2 {
+		left := nodesIndexSlice[i]    // Get the left child index
+		right := nodesIndexSlice[i+1] // Get the right child index
+
 		h.Reset()
-		h.Write(t.Nodes[left].Hash)
-		h.Write(t.Nodes[right].Hash)
+		h.Write(t.Nodes[left].Hash)  // Get the hash of left child
+		h.Write(t.Nodes[right].Hash) // Get the hash of right child
 		parent := &Node{
 			Parent: -1,
 			Left:   left,
 			Right:  right,
 			Leaf:   false,
 			Dup:    false,
-			Hash:   h.Sum(nil),
+			Hash:   h.Sum(nil), // Hash of hashes
 		}
 		parentIndex := len(t.Nodes)
-		t.Nodes = append(t.Nodes, parent)
-		t.Nodes[left].Parent = parentIndex
-		t.Nodes[right].Parent = parentIndex
-		parents = append(parents, parentIndex)
+		t.Nodes = append(t.Nodes, parent)                  // append the created node to tree
+		t.Nodes[left].Parent = parentIndex                 // update the parent of left child
+		t.Nodes[right].Parent = parentIndex                // update the parent of right child
+		parentIndices = append(parentIndices, parentIndex) // add the parent index
 	}
-	if len(parents) == 1 {
-		return parents[0], nil
+	if len(parentIndices) == 1 { // Root is reached
+		return parentIndices[0], nil // return root index
 	} else {
-		return buildIntermediate(parents, t)
+		return buildIntermediate(parentIndices, t) // build the next level
 	}
 }
 
 // VerifyContentHash verifies the hash of a given content against the Merkle tree
 func (t *MerkleTree) VerifyContentHash(content []byte, rootHash []byte) bool {
+
 	// Find the leaf node that contains the matching hash
-	leafNodeIndex := -1
-	hashVal := t.hashByteSlice(content)
-	for _, leafIndex := range t.Leafs {
-		if bytes.Equal(t.Nodes[leafIndex].Hash, hashVal) {
-			leafNodeIndex = leafIndex
+	leafNodeIndex := -1                 // No index set
+	hashVal := t.hashByteSlice(content) // Hash the given content
+	for i := 0; i < t.LeafCount; i++ {
+		if bytes.Equal(t.Nodes[i].Hash, hashVal) { // If current hash matches any of leaf hashes
+			leafNodeIndex = i
 			break
 		}
 	}
-	if leafNodeIndex == -1 {
+	if leafNodeIndex == -1 { // If no leaf found the content verification fails
 		return false
 	}
 
 	// Traverse the tree from the leaf node up to the root node
 	nodeIndex := leafNodeIndex
-	for t.Nodes[nodeIndex].Parent != -1 {
+	for t.Nodes[nodeIndex].Parent != -1 { // Till root is reached
 		parentIndex := t.Nodes[nodeIndex].Parent
 		leftIndex := t.Nodes[parentIndex].Left
 		rightIndex := t.Nodes[parentIndex].Right
 
 		// Hash the hashes of the left and right child nodes
-		h := sha256.New()
+		h := newHashFunc()
 		h.Write(t.Nodes[leftIndex].Hash)
 		h.Write(t.Nodes[rightIndex].Hash)
 		hashValue := h.Sum(nil)[:]
@@ -181,6 +190,7 @@ func (t *MerkleTree) VerifyContentHash(content []byte, rootHash []byte) bool {
 	}
 
 	// If we've reached the root node and its hash matches the expected root hash, the content has not been tampered with
+	// We ultimately check the root hash with the passed hash to this method
 	return bytes.Equal(t.Nodes[nodeIndex].Hash, rootHash)
 }
 
@@ -191,4 +201,9 @@ func (t *MerkleTree) PrintTreeNodes() {
 		s += fmt.Sprintf("%v\n", n)
 	}
 	fmt.Println(s)
+}
+
+// Returns the hash function, this is the only place to be changed to change the hash func
+func newHashFunc() hash.Hash {
+	return sha256.New()
 }
