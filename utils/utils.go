@@ -2,7 +2,9 @@ package utils
 
 import (
 	"encoding/gob"
+	"encoding/json"
 	"fmt"
+	commonTypes "github.com/TruFaaS/TruFaaS/common_types"
 	"github.com/TruFaaS/TruFaaS/constants"
 	merkleTree "github.com/TruFaaS/TruFaaS/merkle_tree"
 	"net/http"
@@ -54,18 +56,37 @@ func RetrieveMerkleTree() (*merkleTree.MerkleTree, error) {
 	}
 }
 
-// SendSuccessResponse : tos send the success response back to the client
-func SendSuccessResponse(respWriter http.ResponseWriter, statusCode int, msg string) error {
+// SendSuccessResponse SendResponse : tos send the success response back to the client
+func SendSuccessResponse(respWriter http.ResponseWriter, body commonTypes.SuccessResponse) {
 
+	jsonResponse, err := json.Marshal(body)
+	if err != nil {
+		fmt.Printf("failed to marshal body, Error:%s", err)
+		return
+	}
 	respWriter.Header().Set("Content-Type", constants.ContentTypeJSON)
-	respWriter.WriteHeader(statusCode)
-
-	if msg != "nil" {
-		_, err := respWriter.Write([]byte(msg))
-		if err != nil {
-			return err
-		}
+	respWriter.WriteHeader(body.StatusCode)
+	_, err = respWriter.Write(jsonResponse)
+	if err != nil {
+		fmt.Printf("failed to marshal body, Error:%s", err)
+		return
 	}
 
-	return nil
+}
+
+func SendErrorResponse(respWriter http.ResponseWriter, body commonTypes.ErrorResponse) {
+
+	jsonResponse, err := json.Marshal(body)
+	if err != nil {
+		fmt.Printf("failed to marshal body, Error:%s", err)
+		return
+	}
+	respWriter.Header().Set("Content-Type", constants.ContentTypeJSON)
+	respWriter.WriteHeader(body.StatusCode)
+	_, err = respWriter.Write(jsonResponse)
+	if err != nil {
+		fmt.Printf("failed to marshal body, Error:%s", err)
+		return
+	}
+
 }
