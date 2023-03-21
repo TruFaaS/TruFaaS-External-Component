@@ -2,6 +2,7 @@ package fission
 
 import (
 	"encoding/json"
+	"fmt"
 	commonTypes "github.com/TruFaaS/TruFaaS/common_types"
 	merkleTree "github.com/TruFaaS/TruFaaS/merkle_tree"
 	"github.com/TruFaaS/TruFaaS/utils"
@@ -88,6 +89,7 @@ func VerifyFnTrustValue(respWriter http.ResponseWriter, req *http.Request) {
 	if isVerified {
 		successResponse := commonTypes.SuccessResponse{StatusCode: http.StatusOK, Msg: "Function verification is successful", FnName: function.FunctionInformation.Name, TrustVerified: true}
 		utils.SendSuccessResponse(respWriter, successResponse)
+		fmt.Println("verification successful", function.FunctionInformation.Name)
 
 	} else {
 		errResponse.StatusCode = http.StatusBadRequest
@@ -96,6 +98,7 @@ func VerifyFnTrustValue(respWriter http.ResponseWriter, req *http.Request) {
 		falseVal := false
 		errResponse.TrustVerified = &falseVal
 		utils.SendErrorResponse(respWriter, errResponse)
+		fmt.Println("verification failed", function.FunctionInformation.Name)
 
 	}
 
