@@ -8,6 +8,18 @@ import (
 	"log"
 )
 
+var sim *simulator.Simulator
+
+func GetInstanceAtCreate() *simulator.Simulator {
+	if sim == nil {
+		sim, _ = simulator.Get()
+	}
+	return sim
+}
+func SaveToTPM(sim *simulator.Simulator, content []byte) {}
+
+func GetFromTPM(sim *simulator.Simulator) {}
+
 func TPMTest() {
 	sim, err := simulator.Get()
 	if err != nil {
