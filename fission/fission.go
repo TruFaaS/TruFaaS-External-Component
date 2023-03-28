@@ -5,6 +5,7 @@ import (
 	"fmt"
 	commonTypes "github.com/TruFaaS/TruFaaS/common_types"
 	merkleTree "github.com/TruFaaS/TruFaaS/merkle_tree"
+	"github.com/TruFaaS/TruFaaS/tpm"
 	"github.com/TruFaaS/TruFaaS/utils"
 	"net/http"
 )
@@ -84,7 +85,7 @@ func VerifyFnTrustValue(respWriter http.ResponseWriter, req *http.Request) {
 		errResponse.ErrorMsg = "Internal Server error"
 		return
 	}
-
+	tpm.TPMTest()
 	isVerified := mt.VerifyContentHash(fnByteArr, rootHash)
 	if isVerified {
 		successResponse := commonTypes.SuccessResponse{StatusCode: http.StatusOK, Msg: "Function verification is successful", FnName: function.FunctionInformation.Name, TrustVerified: true}
