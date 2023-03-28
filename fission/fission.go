@@ -107,6 +107,7 @@ func VerifyFnTrustValue(respWriter http.ResponseWriter, req *http.Request) {
 func TestTPMMethod(respWriter http.ResponseWriter, req *http.Request) {
 	sim := tpm.GetInstanceAtCreate()
 	sealedSecret := []byte{180, 62, 62, 60, 193, 42, 73, 38, 4, 48, 163, 67, 240, 116, 35, 151, 125, 172, 172, 200, 140, 175, 141, 215, 94, 181, 12, 165, 44, 146, 178, 188}
+	//sealedSecret := []byte{1, 2, 3}
 	tpm.SaveToTPM(sim, sealedSecret)
 }
 

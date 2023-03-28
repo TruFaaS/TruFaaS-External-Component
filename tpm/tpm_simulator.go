@@ -1,8 +1,8 @@
 package tpm
 
 import (
+	"bytes"
 	"crypto/sha256"
-	"encoding/hex"
 	"fmt"
 	"github.com/google/go-tpm-tools/simulator"
 	"github.com/google/go-tpm/tpm2"
@@ -18,42 +18,64 @@ func GetInstanceAtCreate() *simulator.Simulator {
 	return sim
 }
 func SaveToTPM(sim *simulator.Simulator, content []byte) {
-	fmt.Println("================Before writing to TPM")
+	content = bytes.Repeat([]byte{0xF}, sha256.Size)
+	fmt.Println("================Before writing to TPM===========")
 	GetFromTPM(sim)
-	pcrHandle := tpmutil.Handle(23)
+
+	pcrHandle := tpmutil.Handle(uint32(16))
 	err := tpm2.PCRReset(sim, pcrHandle)
 	if err != nil {
 		fmt.Println(err)
 		return
 	}
+	//pcrValue := bytes.Repeat([]byte{0xF}, sha256.Size)
 
-	err = tpm2.PCRExtend(sim, pcrHandle, tpm2.AlgSHA256, tpmutil.RawBytes{}, "")
+	err = tpm2.PCRExtend(sim, pcrHandle, tpm2.AlgSHA256, content, "")
 	//err = tpm2.PCREvent(sim, pcrHandle, content)
 	if err != nil {
 		fmt.Println(err)
 		return
 	}
-	fmt.Println("================After writing to TPM")
+	expectedValue := tpmutil.U16Bytes(content[:])
+
+	fmt.Println("===============content=============")
+	fmt.Println(expectedValue)
+	//fmt.Println(len(content))
+
+	//
+	fmt.Println("================After writing to TPM==============")
 	GetFromTPM(sim)
-	fmt.Println("================Manual hashing")
-	h := sha256.New()
-	h.Write(content)
-	value := h.Sum(nil)
-	fmt.Println("===========Byte array that was hashed")
-	fmt.Println(value)
-	fmt.Println(hex.EncodeToString(value))
+	//fmt.Println("================Manual hashing")
+	//h := sha256.New()
+	//h.Write(content)
+	//value := h.Sum(nil)
+	//fmt.Println("===========Byte array that was hashed")
+	//fmt.Println(value)
+	//fmt.Println(hex.EncodeToString(value))
 }
 
 func GetFromTPM(sim *simulator.Simulator) {
 
-	pcr, err := tpm2.ReadPCR(sim, 23, tpm2.AlgSHA256)
+	pcr, err := tpm2.ReadPCR(sim, 16, tpm2.AlgSHA256)
 	if err != nil {
+		fmt.Println(err)
 		return
 	}
 
-	fmt.Printf("PCR %d value: %x\n", 7, pcr)
-	fmt.Println("===========Byte array from reading pCR")
+	fmt.Println("===========Byte array from reading PCR 16===============")
 	fmt.Println(pcr)
+
+	//rs, err := tpm2.ReadPCRs(sim, tpm2.PCRSelection{
+	//	Hash: tpm2.AlgSHA256,
+	//	PCRs: []int{23},
+	//})
+	//if err != nil {
+	//	fmt.Println(err)
+	//	return
+	//}
+	//fmt.Println("===========Byte array from reading PCR Map========================")
+	//fmt.Println(rs)
+
 }
 
 //func TPMTest() {
