@@ -1,19 +1,38 @@
 package tpm
 
 import (
+	"bytes"
+	"crypto/sha256"
 	"fmt"
-	"github.com/google/go-tpm/tpm2"
+	"github.com/google/go-tpm/tpmutil/mssim"
 )
 
 func main() {
 	//sim, err := simulator.Get()
-	tpm, err := tpm2.OpenTPM("/home/gayangi/Downloads/Simulator.exe")
+	config := mssim.Config{
+		CommandAddress:  "",
+		PlatformAddress: "",
+	}
+	open, err := mssim.Open(config)
 	if err != nil {
 		fmt.Println(err)
 		return
 	}
+	content := bytes.Repeat([]byte{0xD}, sha256.Size)
 
-	fmt.Println(tpm)
+	write, err := open.Write(content)
+	if err != nil {
+		fmt.Println(err)
+		return
+	}
+	fmt.Println(write)
+	read, err := open.Read(content)
+	if err != nil {
+		fmt.Println(err)
+		return
+	}
+	fmt.Println(read)
+
 	//if err != nil {
 	//	log.Fatalf("failed to initialize sim: %v", err)
 	//}
