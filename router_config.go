@@ -19,13 +19,28 @@ func (routerConfig *RouterConfig) Initialize(platform constants.FaaSPlatform) {
 	fmt.Println("Initializing Router")
 	routerConfig.Platform = platform
 	routerConfig.Router = mux.NewRouter().StrictSlash(true)
-	routerConfig.initializeFissionRoutes()
+	routerConfig.initializeSpecifiedPlatformRoutes()
 
 }
 
 // Run Starts the router
 func (routerConfig *RouterConfig) Run() {
 	log.Fatal(http.ListenAndServe(":8080", routerConfig.Router))
+}
+
+// To initialize only specified FaaS platform routes
+func (routerConfig *RouterConfig) initializeSpecifiedPlatformRoutes() {
+	platform := routerConfig.Platform
+	switch platform {
+	case constants.Fission:
+		routerConfig.initializeFissionRoutes()
+	case constants.OpenFaaS:
+		routerConfig.initializeOpenFaaSRoutes()
+	default:
+		routerConfig.initializeFissionRoutes()
+
+	}
+
 }
 
 // Fission Routes
@@ -38,5 +53,6 @@ func (routerConfig *RouterConfig) initializeFissionRoutes() {
 
 // OpenFaaS Routes
 func (routerConfig *RouterConfig) initializeOpenFaaSRoutes() {
+	fmt.Println("Initializing OpenFaaS Routes")
 
 }
