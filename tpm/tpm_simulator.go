@@ -2,14 +2,17 @@ package tpm
 
 import (
 	"bytes"
-	"crypto/sha256"
 	"fmt"
+	merkleTree "github.com/TruFaaS/TruFaaS/merkle_tree"
 	"github.com/google/go-tpm-tools/simulator"
 	"github.com/google/go-tpm/tpm2"
 	"github.com/google/go-tpm/tpmutil"
+	"log"
 )
 
 var sim *simulator.Simulator
+
+//var previousPCRValue []byte
 
 func GetInstanceAtCreate() *simulator.Simulator {
 	if sim == nil {
@@ -17,109 +20,87 @@ func GetInstanceAtCreate() *simulator.Simulator {
 	}
 	return sim
 }
-func SaveToTPM(sim *simulator.Simulator, content []byte) {
-	content = bytes.Repeat([]byte{0xF}, sha256.Size)
-	fmt.Println("================Before writing to TPM===========")
-	GetFromTPM(sim)
+func SaveToTPM(sim *simulator.Simulator, hashedContent []byte, pcrIndex int) error {
 
-	pcrHandle := tpmutil.Handle(uint32(16))
-	err := tpm2.PCRReset(sim, pcrHandle)
-	if err != nil {
-		fmt.Println(err)
-		return
-	}
-	//pcrValue := bytes.Repeat([]byte{0xF}, sha256.Size)
+	pcrHandle := tpmutil.Handle(uint32(pcrIndex))
 
-	err = tpm2.PCRExtend(sim, pcrHandle, tpm2.AlgSHA256, content, "")
-	//err = tpm2.PCREvent(sim, pcrHandle, content)
-	if err != nil {
-		fmt.Println(err)
-		return
-	}
-	expectedValue := tpmutil.U16Bytes(content[:])
-
-	fmt.Println("===============content=============")
-	fmt.Println(expectedValue)
-	//fmt.Println(len(content))
-
-	//
-	fmt.Println("================After writing to TPM==============")
-	GetFromTPM(sim)
-	//fmt.Println("================Manual hashing")
-	//h := sha256.New()
-	//h.Write(content)
-	//value := h.Sum(nil)
-	//fmt.Println("===========Byte array that was hashed")
-	//fmt.Println(value)
-	//fmt.Println(hex.EncodeToString(value))
-}
-
-func GetFromTPM(sim *simulator.Simulator) {
-
-	pcr, err := tpm2.ReadPCR(sim, 16, tpm2.AlgSHA256)
-	if err != nil {
-		fmt.Println(err)
-		return
-	}
-
-	fmt.Println("===========Byte array from reading PCR 16===============")
-	fmt.Println(pcr)
-
-	//rs, err := tpm2.ReadPCRs(sim, tpm2.PCRSelection{
-	//	Hash: tpm2.AlgSHA256,
-	//	PCRs: []int{23},
-	//})
+	// uncomment for debugging
+	//initialPcrValue, err := tpm2.ReadPCR(sim, pcrIndex, tpm2.AlgSHA256)
 	//if err != nil {
-	//	fmt.Println(err)
-	//	return
+	//	log.Fatalf("failed to read PCR: %v", err)
 	//}
-	//fmt.Println("===========Byte array from reading PCR Map========================")
-	//fmt.Println(rs)
+	err := tpm2.PCRReset(sim, pcrHandle)
+	//previousPCR, err := tpm2.ReadPCR(sim, pcrIndex, tpm2.AlgSHA256)
+	if err != nil {
+		fmt.Println(err)
+		return err
+	}
+	//previousPCRValue = previousPCR
+
+	// TPM PCR extensions follow the calculation:
+	// pcr_new = H(pcr_old | H(data))
+	// The variable hashedContent already contains the H(data) value
+	err = tpm2.PCRExtend(sim, pcrHandle, tpm2.AlgSHA256, hashedContent, "")
+	if err != nil {
+		fmt.Println(err)
+		return err
+	}
+
+	pcrValue, err := tpm2.ReadPCR(sim, pcrIndex, tpm2.AlgSHA256)
+	if err != nil {
+		log.Fatalf("failed to read PCR: %v", err)
+	}
+	fmt.Println(pcrValue)
+	return nil
+
+	//h := sha256.New()
+	//h.Write(initialPcrValue)
+	//h.Write(hashedContent)
+	//hashedValue := h.Sum(nil)
+	//
+	//// Compare the hash with the value read from the PCR.
+	//if bytes.Equal(hashedValue, pcrValue) {
+	//	fmt.Println("PCR value matches the extended value.")
+	//} else {
+	//	fmt.Println("PCR value does not match the extended value.")
+	//	fmt.Println(hashedValue)
+	//	fmt.Println(pcrValue)
+	//}
 
 }
 
-//func TPMTest() {
-//	sim, err := simulator.Get()
-//	if err != nil {
-//		log.Fatalf("failed to initialize sim: %v", err)
-//	}
-//	defer func(sim *simulator.Simulator) {
-//		err := sim.Close()
-//		if err != nil {
-//
-//		}
-//	}(sim)
-//
-//	// reads initial PCR value
-//	//should give a 32 bit string of 0's
-//	pcr, err := tpm2.ReadPCR(sim, 7, tpm2.AlgSHA256)
-//	if err != nil {
-//		return
-//	}
-//
-//	fmt.Printf("PCR %d value: %x\n", 7, pcr)
-//	fmt.Println(len(pcr))
-//
-//	// merkle tree root
-//	// TODO: replace
-//	sealedSecret := []byte{180, 62, 62, 60, 193, 42, 73, 38, 4, 48, 163, 67, 240, 116, 35, 151, 125, 172, 172, 200, 140, 175, 141, 215, 94, 181, 12, 165, 44, 146, 178, 188}
-//	fmt.Println(sealedSecret)
-//
-//	//hash := sha256.Sum256(sealedSecret)
-//	pcrHandle := tpmutil.Handle(7)
-//	err = tpm2.PCRExtend(sim, pcrHandle, tpm2.AlgNull, sealedSecret, "")
-//	err = tpm2.PCREvent(sim, pcrHandle, sealedSecret)
-//	if err != nil {
-//		fmt.Println(err)
-//		return
-//	}
-//
-//	pcr, err = tpm2.ReadPCR(sim, 7, tpm2.AlgSHA256)
-//	if err != nil {
-//		return
-//	}
-//
-//	fmt.Printf("PCR %d value: %x\n", 7, pcr)
-//	fmt.Println(len(pcr))
-//
-//}
+func VerifyMerkleRoot(sim *simulator.Simulator, merkleRoot []byte, pcrIndex int) bool {
+	// Read the merkle root stored in the TPM
+	pcrValue, err := tpm2.ReadPCR(sim, pcrIndex, tpm2.AlgSHA256)
+	if err != nil {
+		log.Fatalf("failed to read PCR: %v", err)
+		return false
+	}
+	// This method involves manually recreating the PCRExtend operation
+	// TPM PCR extensions follow the calculation:
+	// pcr_new = H(pcr_old | H(data))
+	// The variable hashedContent already contains the H(data) value
+	// Creating a byte array of 32 0's
+	// TODO: replace if the PCR will not be reset
+	zeroByteArray := bytes.Repeat([]byte{0}, 32)
+
+	// Get the SHA256 algorithm
+	h := merkleTree.NewHashFunc()
+	// Write the 0 byte array
+	h.Write(zeroByteArray)
+	// concatenate the merkle root given from TruFaaS
+	h.Write(merkleRoot)
+	// calculate the hashed value
+	hashedValue := h.Sum(nil)
+
+	if bytes.Equal(hashedValue, pcrValue) {
+		fmt.Println("PCR value matches the extended value.")
+		return true
+	} else {
+		fmt.Println("PCR value does not match the extended value.")
+		fmt.Println(hashedValue)
+		fmt.Println(pcrValue)
+		return false
+	}
+
+}
