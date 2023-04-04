@@ -90,3 +90,17 @@ func SendErrorResponse(respWriter http.ResponseWriter, body commonTypes.ErrorRes
 	}
 
 }
+
+func SendVerificationFailureErrorResponse(respWriter http.ResponseWriter, fnName string) {
+
+	errResponse := commonTypes.ErrorResponse{}
+	//:TODO change status code
+	errResponse.StatusCode = http.StatusBadRequest
+	errResponse.ErrorMsg = "Function verification failed"
+	errResponse.FnName = fnName
+	falseVal := false
+	errResponse.TrustVerified = &falseVal
+
+	SendErrorResponse(respWriter, errResponse)
+
+}

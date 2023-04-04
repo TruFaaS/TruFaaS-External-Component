@@ -37,6 +37,7 @@ func CreateFnTrustValue(respWriter http.ResponseWriter, req *http.Request) {
 	if err != nil {
 		errResponse.StatusCode = http.StatusInternalServerError
 		errResponse.ErrorMsg = "Internal Server error"
+		utils.SendErrorResponse(respWriter, errResponse)
 		return
 	}
 
@@ -88,9 +89,8 @@ func VerifyFnTrustValue(respWriter http.ResponseWriter, req *http.Request) {
 	sim := tpm.GetInstance()
 	merkleTreeVerifiedWithTpm, merkleRoot := tpm.VerifyMerkleRoot(sim, rootHash)
 	if !merkleTreeVerifiedWithTpm {
-		// TODO: update with appropriate status code
-		errResponse.StatusCode = http.StatusInternalServerError
-		errResponse.ErrorMsg = "TPM Value and Merkle Root don't match"
+		utils.SendVerificationFailureErrorResponse(respWriter, function.FunctionInformation.Name)
+		fmt.Println("verification failed", function.FunctionInformation.Name)
 		return
 	}
 
@@ -98,6 +98,7 @@ func VerifyFnTrustValue(respWriter http.ResponseWriter, req *http.Request) {
 	if err != nil {
 		errResponse.StatusCode = http.StatusInternalServerError
 		errResponse.ErrorMsg = "Internal Server error"
+		utils.SendErrorResponse(respWriter, errResponse)
 		return
 	}
 
@@ -108,13 +109,7 @@ func VerifyFnTrustValue(respWriter http.ResponseWriter, req *http.Request) {
 		fmt.Println("verification successful", function.FunctionInformation.Name)
 
 	} else {
-		// TODO: update with appropriate status code
-		errResponse.StatusCode = http.StatusBadRequest
-		errResponse.ErrorMsg = "Function verification failed"
-		errResponse.FnName = function.FunctionInformation.Name
-		falseVal := false
-		errResponse.TrustVerified = &falseVal
-		utils.SendErrorResponse(respWriter, errResponse)
+		utils.SendVerificationFailureErrorResponse(respWriter, function.FunctionInformation.Name)
 		fmt.Println("verification failed", function.FunctionInformation.Name)
 
 	}
