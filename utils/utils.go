@@ -95,7 +95,7 @@ func SendVerificationFailureErrorResponse(respWriter http.ResponseWriter, fnName
 
 	errResponse := commonTypes.ErrorResponse{}
 	//:TODO change status code
-	errResponse.StatusCode = http.StatusBadRequest
+	errResponse.StatusCode = http.StatusNotFound
 	errResponse.ErrorMsg = "Function verification failed"
 	errResponse.FnName = fnName
 	falseVal := false
