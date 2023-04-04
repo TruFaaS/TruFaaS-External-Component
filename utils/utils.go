@@ -35,7 +35,7 @@ func StoreMerkleTree(tree *merkleTree.MerkleTree) error {
 func RetrieveMerkleTree() (*merkleTree.MerkleTree, error) {
 	_, err := os.Stat(constants.TreeStoreFileName)
 	if os.IsNotExist(err) {
-		fmt.Println("file not found")
+		fmt.Println("No exiting merkle tree found")
 		return merkleTree.NewTree(), nil
 
 	} else {

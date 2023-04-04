@@ -59,6 +59,8 @@ func CreateFnTrustValue(respWriter http.ResponseWriter, req *http.Request) {
 	responseBody := commonTypes.SuccessResponse{StatusCode: http.StatusCreated, Msg: "Function trust value created successfully", FnName: function.FunctionInformation.Name}
 	//send a json response back
 	utils.SendSuccessResponse(respWriter, responseBody)
+	// logs
+	fmt.Println("function created successful, function Name: ", function.FunctionInformation.Name)
 
 }
 
@@ -106,7 +108,7 @@ func VerifyFnTrustValue(respWriter http.ResponseWriter, req *http.Request) {
 	if contentHashVerified {
 		successResponse := commonTypes.SuccessResponse{StatusCode: http.StatusOK, Msg: "Function verification is successful", FnName: function.FunctionInformation.Name, TrustVerified: true}
 		utils.SendSuccessResponse(respWriter, successResponse)
-		fmt.Println("verification successful", function.FunctionInformation.Name)
+		fmt.Println("verification successful, function name: ", function.FunctionInformation.Name)
 
 	} else {
 		utils.SendVerificationFailureErrorResponse(respWriter, function.FunctionInformation.Name)
