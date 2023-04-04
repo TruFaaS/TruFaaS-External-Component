@@ -33,7 +33,7 @@ func SaveToTPM(sim *simulator.Simulator, hashedContent []byte) error {
 	err := tpm2.PCRReset(sim, pcrHandle)
 	//previousPCR, err := tpm2.ReadPCR(sim, pcrIndex, tpm2.AlgSHA256)
 	if err != nil {
-		fmt.Println(err)
+		log.Fatalf("failed to reset PCR: %v", err)
 		return err
 	}
 	//previousPCRValue = previousPCR
@@ -43,15 +43,10 @@ func SaveToTPM(sim *simulator.Simulator, hashedContent []byte) error {
 	// The variable hashedContent already contains the H(data) value
 	err = tpm2.PCRExtend(sim, pcrHandle, tpm2.AlgSHA256, hashedContent, "")
 	if err != nil {
-		fmt.Println(err)
+		log.Fatalf("failed to extend PCR: %v", err)
 		return err
 	}
 
-	pcrValue, err := tpm2.ReadPCR(sim, pcrIndex, tpm2.AlgSHA256)
-	if err != nil {
-		log.Fatalf("failed to read PCR: %v", err)
-	}
-	fmt.Println(pcrValue)
 	return nil
 
 	//h := sha256.New()
@@ -86,13 +81,13 @@ func VerifyMerkleRoot(sim *simulator.Simulator, merkleRoot []byte) (bool, []byte
 	zeroByteArray := bytes.Repeat([]byte{0}, 32)
 
 	// Get the SHA256 algorithm
-	h := merkleTree.NewHashFunc()
+	hashCalculator := merkleTree.NewHashFunc()
 	// Write the 0 byte array
-	h.Write(zeroByteArray)
-	// concatenate the merkle root given from TruFaaS
-	h.Write(merkleRoot)
-	// calculate the hashed value
-	hashedValue := h.Sum(nil)
+	hashCalculator.Write(zeroByteArray)
+	// Concatenate the merkle root given from TruFaaS
+	hashCalculator.Write(merkleRoot)
+	// Calculate the hashed value
+	hashedValue := hashCalculator.Sum(nil)
 
 	if bytes.Equal(hashedValue, pcrValue) {
 		fmt.Println("PCR value matches the extended value.")
