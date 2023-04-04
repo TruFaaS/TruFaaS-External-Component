@@ -47,6 +47,12 @@ func CreateFnTrustValue(respWriter http.ResponseWriter, req *http.Request) {
 		println(err)
 		return
 	}
+	sim := tpm.GetInstanceAtCreate()
+	err = tpm.SaveToTPM(sim, mt.MerkleRoot())
+	if err != nil {
+		println(err)
+		return
+	}
 
 	// response body
 	responseBody := commonTypes.SuccessResponse{StatusCode: http.StatusCreated, Msg: "Function trust value created successfully", FnName: function.FunctionInformation.Name}
@@ -76,16 +82,23 @@ func VerifyFnTrustValue(respWriter http.ResponseWriter, req *http.Request) {
 		utils.SendErrorResponse(respWriter, errResponse)
 		return
 	}
-
 	rootHash := mt.MerkleRoot()
 
+	sim := tpm.GetInstanceAtCreate()
+	verified, merkleRoot := tpm.VerifyMerkleRoot(sim, rootHash)
+	if !verified {
+		// TODO: update with appropriate status code
+		errResponse.StatusCode = http.StatusInternalServerError
+		errResponse.ErrorMsg = "TPM Value and Merkle Root don't match"
+		return
+	}
 	fnByteArr, err := json.Marshal(function)
 	if err != nil {
 		errResponse.StatusCode = http.StatusInternalServerError
 		errResponse.ErrorMsg = "Internal Server error"
 		return
 	}
-	isVerified := mt.VerifyContentHash(fnByteArr, rootHash)
+	isVerified := mt.VerifyContentHash(fnByteArr, merkleRoot)
 	if isVerified {
 		successResponse := commonTypes.SuccessResponse{StatusCode: http.StatusOK, Msg: "Function verification is successful", FnName: function.FunctionInformation.Name, TrustVerified: true}
 		utils.SendSuccessResponse(respWriter, successResponse)
@@ -108,12 +121,12 @@ func TestTPMMethod(respWriter http.ResponseWriter, req *http.Request) {
 	sim := tpm.GetInstanceAtCreate()
 	sealedSecret := []byte{180, 62, 62, 60, 193, 42, 73, 38, 4, 48, 163, 67, 240, 116, 35, 151, 125, 172, 172, 200, 140, 175, 141, 215, 94, 181, 12, 165, 44, 146, 178, 188}
 	//sealedSecret := []byte{1, 2, 3}
-	err := tpm.SaveToTPM(sim, sealedSecret, 23)
+	err := tpm.SaveToTPM(sim, sealedSecret)
 	if err != nil {
 		fmt.Println(err)
 		return
 	}
-	tpm.VerifyMerkleRoot(sim, sealedSecret, 23)
+	tpm.VerifyMerkleRoot(sim, sealedSecret)
 }
 
 //;TODO add logger later
