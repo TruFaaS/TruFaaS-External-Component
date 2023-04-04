@@ -5,6 +5,7 @@ import (
 	"fmt"
 	commonTypes "github.com/TruFaaS/TruFaaS/common_types"
 	merkleTree "github.com/TruFaaS/TruFaaS/merkle_tree"
+	"github.com/TruFaaS/TruFaaS/tpm"
 	"github.com/TruFaaS/TruFaaS/utils"
 	"net/http"
 )
@@ -36,12 +37,19 @@ func CreateFnTrustValue(respWriter http.ResponseWriter, req *http.Request) {
 	if err != nil {
 		errResponse.StatusCode = http.StatusInternalServerError
 		errResponse.ErrorMsg = "Internal Server error"
+		utils.SendErrorResponse(respWriter, errResponse)
 		return
 	}
 
 	mt = mt.AppendNewContent(fnByteArr)
 
 	err = utils.StoreMerkleTree(mt)
+	if err != nil {
+		println(err)
+		return
+	}
+	sim := tpm.GetInstance()
+	err = tpm.SaveToTPM(sim, mt.GetMerkleRoot())
 	if err != nil {
 		println(err)
 		return
@@ -78,29 +86,33 @@ func VerifyFnTrustValue(respWriter http.ResponseWriter, req *http.Request) {
 		return
 	}
 
-	rootHash := mt.MerkleRoot()
+	rootHash := mt.GetMerkleRoot()
+
+	sim := tpm.GetInstance()
+	merkleTreeVerifiedWithTpm, merkleRoot := tpm.VerifyMerkleRoot(sim, rootHash)
+	if !merkleTreeVerifiedWithTpm {
+		utils.SendVerificationFailureErrorResponse(respWriter, function.FunctionInformation.Name)
+		fmt.Println("verification failed", function.FunctionInformation.Name)
+		return
+	}
 
 	fnByteArr, err := json.Marshal(function)
 	if err != nil {
 		errResponse.StatusCode = http.StatusInternalServerError
 		errResponse.ErrorMsg = "Internal Server error"
+		utils.SendErrorResponse(respWriter, errResponse)
 		return
 	}
 
-	isVerified := mt.VerifyContentHash(fnByteArr, rootHash)
-	if isVerified {
+	contentHashVerified := mt.VerifyContentHash(fnByteArr, merkleRoot)
+	if contentHashVerified {
 		successResponse := commonTypes.SuccessResponse{StatusCode: http.StatusOK, Msg: "Function verification is successful", FnName: function.FunctionInformation.Name, TrustVerified: true}
 		utils.SendSuccessResponse(respWriter, successResponse)
 		fmt.Println("verification successful, function name: ", function.FunctionInformation.Name)
 
 	} else {
-		errResponse.StatusCode = http.StatusBadRequest
-		errResponse.ErrorMsg = "Function verification failed"
-		errResponse.FnName = function.FunctionInformation.Name
-		falseVal := false
-		errResponse.TrustVerified = &falseVal
-		utils.SendErrorResponse(respWriter, errResponse)
-		fmt.Println("verification failed function name: ", function.FunctionInformation.Name)
+		utils.SendVerificationFailureErrorResponse(respWriter, function.FunctionInformation.Name)
+		fmt.Println("verification failed", function.FunctionInformation.Name)
 
 	}
 

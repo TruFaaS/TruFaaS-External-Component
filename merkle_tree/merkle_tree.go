@@ -31,14 +31,14 @@ func NewTree() *MerkleTree {
 	return t
 }
 
-// MerkleRoot returns the root hash of the Merkle tree
-func (t *MerkleTree) MerkleRoot() []byte {
+// GetMerkleRoot returns the root hash of the Merkle tree
+func (t *MerkleTree) GetMerkleRoot() []byte {
 	return t.MerkleRootHash
 }
 
 // hashByteSlice returns the hash of a byte slice using the hash function
 func (t *MerkleTree) hashByteSlice(data []byte) []byte {
-	h := newHashFunc()
+	h := NewHashFunc()
 	h.Write(data)
 	return h.Sum(nil)[:]
 }
@@ -113,7 +113,7 @@ func updateLeafsAndNodes(leafCount int, nodes []*Node, leaf *Node) (int, []*Node
 func buildIntermediate(nodesIndexSlice []int, t *MerkleTree) (int, error) {
 
 	// Hash start
-	h := newHashFunc()
+	h := NewHashFunc()
 
 	// If node slice have odd length make it even to loop through
 	if len(nodesIndexSlice)%2 == 1 {
@@ -175,7 +175,7 @@ func (t *MerkleTree) VerifyContentHash(content []byte, rootHash []byte) bool {
 		rightIndex := t.Nodes[parentIndex].Right
 
 		// Hash the hashes of the left and right child nodes
-		h := newHashFunc()
+		h := NewHashFunc()
 		h.Write(t.Nodes[leftIndex].Hash)
 		h.Write(t.Nodes[rightIndex].Hash)
 		hashValue := h.Sum(nil)[:]
@@ -203,7 +203,7 @@ func (t *MerkleTree) PrintTreeNodes() {
 	fmt.Println(s)
 }
 
-// Returns the hash function, this is the only place to be changed to change the hash func
-func newHashFunc() hash.Hash {
+// NewHashFunc Returns the hash function, this is the only place to be changed to change the hash func
+func NewHashFunc() hash.Hash {
 	return sha256.New()
 }
