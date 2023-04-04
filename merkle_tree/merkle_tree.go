@@ -31,8 +31,8 @@ func NewTree() *MerkleTree {
 	return t
 }
 
-// MerkleRoot returns the root hash of the Merkle tree
-func (t *MerkleTree) MerkleRoot() []byte {
+// GetMerkleRoot returns the root hash of the Merkle tree
+func (t *MerkleTree) GetMerkleRoot() []byte {
 	return t.MerkleRootHash
 }
 

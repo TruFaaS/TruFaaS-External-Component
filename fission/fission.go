@@ -47,8 +47,8 @@ func CreateFnTrustValue(respWriter http.ResponseWriter, req *http.Request) {
 		println(err)
 		return
 	}
-	sim := tpm.GetInstanceAtCreate()
-	err = tpm.SaveToTPM(sim, mt.MerkleRoot())
+	sim := tpm.GetInstance()
+	err = tpm.SaveToTPM(sim, mt.GetMerkleRoot())
 	if err != nil {
 		println(err)
 		return
@@ -82,29 +82,33 @@ func VerifyFnTrustValue(respWriter http.ResponseWriter, req *http.Request) {
 		utils.SendErrorResponse(respWriter, errResponse)
 		return
 	}
-	rootHash := mt.MerkleRoot()
 
-	sim := tpm.GetInstanceAtCreate()
-	verified, merkleRoot := tpm.VerifyMerkleRoot(sim, rootHash)
-	if !verified {
+	rootHash := mt.GetMerkleRoot()
+
+	sim := tpm.GetInstance()
+	merkleTreeVerifiedWithTpm, merkleRoot := tpm.VerifyMerkleRoot(sim, rootHash)
+	if !merkleTreeVerifiedWithTpm {
 		// TODO: update with appropriate status code
 		errResponse.StatusCode = http.StatusInternalServerError
 		errResponse.ErrorMsg = "TPM Value and Merkle Root don't match"
 		return
 	}
+
 	fnByteArr, err := json.Marshal(function)
 	if err != nil {
 		errResponse.StatusCode = http.StatusInternalServerError
 		errResponse.ErrorMsg = "Internal Server error"
 		return
 	}
-	isVerified := mt.VerifyContentHash(fnByteArr, merkleRoot)
-	if isVerified {
+
+	contentHashVerified := mt.VerifyContentHash(fnByteArr, merkleRoot)
+	if contentHashVerified {
 		successResponse := commonTypes.SuccessResponse{StatusCode: http.StatusOK, Msg: "Function verification is successful", FnName: function.FunctionInformation.Name, TrustVerified: true}
 		utils.SendSuccessResponse(respWriter, successResponse)
 		fmt.Println("verification successful", function.FunctionInformation.Name)
 
 	} else {
+		// TODO: update with appropriate status code
 		errResponse.StatusCode = http.StatusBadRequest
 		errResponse.ErrorMsg = "Function verification failed"
 		errResponse.FnName = function.FunctionInformation.Name
@@ -115,18 +119,6 @@ func VerifyFnTrustValue(respWriter http.ResponseWriter, req *http.Request) {
 
 	}
 
-}
-
-func TestTPMMethod(respWriter http.ResponseWriter, req *http.Request) {
-	sim := tpm.GetInstanceAtCreate()
-	sealedSecret := []byte{180, 62, 62, 60, 193, 42, 73, 38, 4, 48, 163, 67, 240, 116, 35, 151, 125, 172, 172, 200, 140, 175, 141, 215, 94, 181, 12, 165, 44, 146, 178, 188}
-	//sealedSecret := []byte{1, 2, 3}
-	err := tpm.SaveToTPM(sim, sealedSecret)
-	if err != nil {
-		fmt.Println(err)
-		return
-	}
-	tpm.VerifyMerkleRoot(sim, sealedSecret)
 }
 
 //;TODO add logger later

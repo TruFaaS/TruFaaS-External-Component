@@ -15,7 +15,7 @@ var pcrIndex int = 23
 
 //var previousPCRValue []byte
 
-func GetInstanceAtCreate() *simulator.Simulator {
+func GetInstance() *simulator.Simulator {
 	if sim == nil {
 		sim, _ = simulator.Get()
 	}
@@ -48,20 +48,6 @@ func SaveToTPM(sim *simulator.Simulator, hashedContent []byte) error {
 	}
 
 	return nil
-
-	//h := sha256.New()
-	//h.Write(initialPcrValue)
-	//h.Write(hashedContent)
-	//hashedValue := h.Sum(nil)
-	//
-	//// Compare the hash with the value read from the PCR.
-	//if bytes.Equal(hashedValue, pcrValue) {
-	//	fmt.Println("PCR value matches the extended value.")
-	//} else {
-	//	fmt.Println("PCR value does not match the extended value.")
-	//	fmt.Println(hashedValue)
-	//	fmt.Println(pcrValue)
-	//}
 
 }
 
