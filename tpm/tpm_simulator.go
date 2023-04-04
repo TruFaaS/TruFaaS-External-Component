@@ -11,6 +11,7 @@ import (
 )
 
 var sim *simulator.Simulator
+var pcrIndex int = 23
 
 //var previousPCRValue []byte
 
@@ -20,7 +21,7 @@ func GetInstanceAtCreate() *simulator.Simulator {
 	}
 	return sim
 }
-func SaveToTPM(sim *simulator.Simulator, hashedContent []byte, pcrIndex int) error {
+func SaveToTPM(sim *simulator.Simulator, hashedContent []byte) error {
 
 	pcrHandle := tpmutil.Handle(uint32(pcrIndex))
 
@@ -69,12 +70,12 @@ func SaveToTPM(sim *simulator.Simulator, hashedContent []byte, pcrIndex int) err
 
 }
 
-func VerifyMerkleRoot(sim *simulator.Simulator, merkleRoot []byte, pcrIndex int) bool {
+func VerifyMerkleRoot(sim *simulator.Simulator, merkleRoot []byte) (bool, []byte) {
 	// Read the merkle root stored in the TPM
 	pcrValue, err := tpm2.ReadPCR(sim, pcrIndex, tpm2.AlgSHA256)
 	if err != nil {
 		log.Fatalf("failed to read PCR: %v", err)
-		return false
+		return false, nil
 	}
 	// This method involves manually recreating the PCRExtend operation
 	// TPM PCR extensions follow the calculation:
@@ -95,12 +96,12 @@ func VerifyMerkleRoot(sim *simulator.Simulator, merkleRoot []byte, pcrIndex int)
 
 	if bytes.Equal(hashedValue, pcrValue) {
 		fmt.Println("PCR value matches the extended value.")
-		return true
+		return true, merkleRoot
 	} else {
 		fmt.Println("PCR value does not match the extended value.")
 		fmt.Println(hashedValue)
 		fmt.Println(pcrValue)
-		return false
+		return false, nil
 	}
 
 }
