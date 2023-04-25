@@ -2,11 +2,13 @@ package utils
 
 import (
 	"encoding/gob"
+	"encoding/hex"
 	"encoding/json"
 	"fmt"
 	commonTypes "github.com/TruFaaS/TruFaaS/common_types"
 	"github.com/TruFaaS/TruFaaS/constants"
 	merkleTree "github.com/TruFaaS/TruFaaS/merkle_tree"
+	"github.com/TruFaaS/TruFaaS/trust_protocol"
 	"net/http"
 	"os"
 )
@@ -91,15 +93,59 @@ func SendErrorResponse(respWriter http.ResponseWriter, body commonTypes.ErrorRes
 
 }
 
-func SendVerificationFailureErrorResponse(respWriter http.ResponseWriter, fnName string) {
+func SendVerificationSuccessResponse(respWriter http.ResponseWriter, fnName string, clientPubKey string) {
 
-	errResponse := commonTypes.ErrorResponse{}
-	//:TODO change status code
-	errResponse.StatusCode = http.StatusNotFound
-	errResponse.ErrorMsg = "Function verification failed"
-	errResponse.FnName = fnName
+	successResponse := commonTypes.SuccessResponse{
+		StatusCode:    http.StatusOK,
+		Msg:           "Function verification is successful",
+		FnName:        fnName,
+		TrustVerified: true,
+	}
+
+	if clientPubKey != "" {
+		trustVal := "true"
+		tp := trust_protocol.TrustProtocol{}
+
+		clientPubKeyBytes, _ := hex.DecodeString(clientPubKey)
+		// populate necessary keys
+		tp.GetProtocolInstance(clientPubKeyBytes)
+
+		// generate MAC for the response
+		tp.GenerateMAC(trustVal)
+
+		// add necessary headers
+		respWriter = tp.SetResponseHeaders(respWriter, trustVal)
+
+	}
+	SendSuccessResponse(respWriter, successResponse)
+}
+
+func SendVerificationFailureErrorResponse(respWriter http.ResponseWriter, fnName string, clientPubKey string) {
+
 	falseVal := false
-	errResponse.TrustVerified = &falseVal
+
+	errResponse := commonTypes.ErrorResponse{
+		StatusCode:    http.StatusNotFound,
+		ErrorMsg:      "Function verification failed",
+		FnName:        fnName,
+		TrustVerified: &falseVal,
+	}
+
+	if clientPubKey != "" {
+		trustVal := "false"
+		tp := trust_protocol.TrustProtocol{}
+
+		clientPubKeyBytes, _ := hex.DecodeString(clientPubKey)
+		// populate necessary keys
+		tp.GetProtocolInstance(clientPubKeyBytes)
+
+		// generate MAC for the response
+		tp.GenerateMAC(trustVal)
+
+		// add necessary headers
+		respWriter = tp.SetResponseHeaders(respWriter, trustVal)
+
+	}
 
 	SendErrorResponse(respWriter, errResponse)
 
