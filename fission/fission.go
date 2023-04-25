@@ -4,6 +4,7 @@ import (
 	"encoding/json"
 	"fmt"
 	commonTypes "github.com/TruFaaS/TruFaaS/common_types"
+	"github.com/TruFaaS/TruFaaS/constants"
 	merkleTree "github.com/TruFaaS/TruFaaS/merkle_tree"
 	"github.com/TruFaaS/TruFaaS/tpm"
 	"github.com/TruFaaS/TruFaaS/utils"
@@ -60,7 +61,7 @@ func CreateFnTrustValue(respWriter http.ResponseWriter, req *http.Request) {
 	//send a json response back
 	utils.SendSuccessResponse(respWriter, responseBody)
 	// logs
-	fmt.Println("function created successful, function Name: ", function.FunctionInformation.Name)
+	fmt.Println("function created successfully, function Name: ", function.FunctionInformation.Name)
 
 }
 
@@ -68,6 +69,9 @@ func VerifyFnTrustValue(respWriter http.ResponseWriter, req *http.Request) {
 	var function Function
 	var mt *merkleTree.MerkleTree
 	errResponse := commonTypes.ErrorResponse{}
+
+	// check and set client public key value
+	clientPubKeyHeader := req.Header.Get(constants.ClientPublicKeyHeader)
 
 	// get the json value and convert to struct
 	err := json.NewDecoder(req.Body).Decode(&function)
@@ -91,7 +95,7 @@ func VerifyFnTrustValue(respWriter http.ResponseWriter, req *http.Request) {
 	sim := tpm.GetInstance()
 	merkleTreeVerifiedWithTpm, merkleRoot := tpm.VerifyMerkleRoot(sim, rootHash)
 	if !merkleTreeVerifiedWithTpm {
-		utils.SendVerificationFailureErrorResponse(respWriter, function.FunctionInformation.Name)
+		utils.SendVerificationFailureErrorResponse(respWriter, function.FunctionInformation.Name, clientPubKeyHeader)
 		fmt.Println("verification failed", function.FunctionInformation.Name)
 		return
 	}
@@ -106,12 +110,11 @@ func VerifyFnTrustValue(respWriter http.ResponseWriter, req *http.Request) {
 
 	contentHashVerified := mt.VerifyContentHash(fnByteArr, merkleRoot)
 	if contentHashVerified {
-		successResponse := commonTypes.SuccessResponse{StatusCode: http.StatusOK, Msg: "Function verification is successful", FnName: function.FunctionInformation.Name, TrustVerified: true}
-		utils.SendSuccessResponse(respWriter, successResponse)
+		utils.SendVerificationSuccessResponse(respWriter, function.FunctionInformation.Name, clientPubKeyHeader)
 		fmt.Println("verification successful, function name: ", function.FunctionInformation.Name)
 
 	} else {
-		utils.SendVerificationFailureErrorResponse(respWriter, function.FunctionInformation.Name)
+		utils.SendVerificationFailureErrorResponse(respWriter, function.FunctionInformation.Name, clientPubKeyHeader)
 		fmt.Println("verification failed", function.FunctionInformation.Name)
 
 	}
