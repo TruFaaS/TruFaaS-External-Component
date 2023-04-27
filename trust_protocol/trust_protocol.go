@@ -6,7 +6,6 @@ import (
 	"crypto/hmac"
 	"crypto/rand"
 	"crypto/sha256"
-	"encoding/base64"
 	"encoding/hex"
 	"github.com/TruFaaS/TruFaaS/constants"
 	"hash"
@@ -66,9 +65,9 @@ func (tp *TrustProtocol) generateSharedSecret() {
 
 func (tp *TrustProtocol) GenerateMAC(trustValue string) {
 
-	hMAC := hmac.New(sha256.New, tp.SharedSecret.Bytes())
-	hMAC.Write([]byte(trustValue))
-	tp.MAC = hMAC
+	hMac := hmac.New(sha256.New, tp.SharedSecret.Bytes())
+	hMac.Write([]byte(trustValue))
+	tp.MAC = hMac
 }
 
 func (tp *TrustProtocol) SetResponseHeaders(w http.ResponseWriter, trustValue string) http.ResponseWriter {
@@ -77,13 +76,13 @@ func (tp *TrustProtocol) SetResponseHeaders(w http.ResponseWriter, trustValue st
 	w.Header().Set(constants.TrustVerificationHeader, trustValue)
 
 	// Add the MAC tag to the response headers
-	macTag := base64.StdEncoding.EncodeToString(tp.MAC.Sum(nil))
+	macTag := hex.EncodeToString(tp.MAC.Sum(nil))
 	w.Header().Set(constants.MACHeader, macTag)
 
 	// Add server's public key to the response headers
 	serverPubKeyBytes := append(tp.ServerPublicKey.X.Bytes(), tp.ServerPublicKey.Y.Bytes()...)
 	serverPubKeyHex := hex.EncodeToString(serverPubKeyBytes)
-	w.Header().Set(constants.ServerPublicKeyHeader, serverPubKeyHex)
+	w.Header().Set(constants.ExternalComponentPublicKeyHeader, serverPubKeyHex)
 
 	return w
 }

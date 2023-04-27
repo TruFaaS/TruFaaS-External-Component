@@ -71,7 +71,7 @@ func VerifyFnTrustValue(respWriter http.ResponseWriter, req *http.Request) {
 	errResponse := commonTypes.ErrorResponse{}
 
 	// check and set client public key value
-	clientPubKeyHeader := req.Header.Get(constants.ClientPublicKeyHeader)
+	clientPubKeyHeader := req.Header.Get(constants.InvokerPublicKeyHeader)
 
 	// get the json value and convert to struct
 	err := json.NewDecoder(req.Body).Decode(&function)

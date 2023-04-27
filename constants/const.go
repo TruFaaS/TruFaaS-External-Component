@@ -13,8 +13,9 @@ const ContentTypeJSON = "application/json"
 const TreeStoreFileName = "tree.gob"
 
 // headers
-
-const TrustVerificationHeader = "x-trust-verification"
-const MACHeader = "x-MAC"
-const ServerPublicKeyHeader = "x-server-public-key"
-const ClientPublicKeyHeader = "x-client-public-key"
+const (
+	TrustVerificationHeader          = "x-trust-verification"
+	MACHeader                        = "x-mac"
+	ExternalComponentPublicKeyHeader = "x-trufaas-public-key"
+	InvokerPublicKeyHeader           = "x-invoker-public-key"
+)
