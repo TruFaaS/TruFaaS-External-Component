@@ -14,8 +14,8 @@ const TreeStoreFileName = "tree.gob"
 
 // headers
 const (
-	TrustVerificationHeader          = "x-trust-verification"
-	MACHeader                        = "x-mac"
+	TrustVerificationHeader          = "x-trufaas-trust-verification"
+	MACHeader                        = "x-trufaas-mac"
 	ExternalComponentPublicKeyHeader = "x-trufaas-public-key"
 	InvokerPublicKeyHeader           = "x-invoker-public-key"
 )
