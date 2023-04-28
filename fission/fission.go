@@ -72,11 +72,6 @@ func VerifyFnTrustValue(respWriter http.ResponseWriter, req *http.Request) {
 
 	// check and set client public key value
 	clientPubKeyHeader := req.Header.Get(constants.InvokerPublicKeyHeader)
-	for name, values := range req.Header {
-		for _, value := range values {
-			fmt.Printf("%s: %s\n", name, value)
-		}
-	}
 
 	// get the json value and convert to struct
 	err := json.NewDecoder(req.Body).Decode(&function)
