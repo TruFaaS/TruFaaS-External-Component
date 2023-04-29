@@ -20,6 +20,7 @@ func (routerConfig *RouterConfig) Initialize(platform constants.FaaSPlatform) {
 	routerConfig.Platform = platform
 	routerConfig.Router = mux.NewRouter().StrictSlash(true)
 	routerConfig.initializeSpecifiedPlatformRoutes()
+	routerConfig.initializeOtherRoutes()
 
 }
 
@@ -54,5 +55,11 @@ func (routerConfig *RouterConfig) initializeFissionRoutes() {
 // OpenFaaS Routes
 func (routerConfig *RouterConfig) initializeOpenFaaSRoutes() {
 	fmt.Println("Initializing OpenFaaS Routes")
+
+}
+
+func (routerConfig *RouterConfig) initializeOtherRoutes() {
+	fmt.Println("Initializing Other Routes")
+	routerConfig.Router.HandleFunc("/reset-tree", ResetTree).Methods(http.MethodGet)
 
 }
