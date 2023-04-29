@@ -25,6 +25,9 @@ func CreateFnTrustValue(respWriter http.ResponseWriter, req *http.Request) {
 		utils.SendErrorResponse(respWriter, errResponse)
 		return
 	}
+	//:TODO testing body
+	bt, _ := json.Marshal(function)
+	fmt.Println(string(bt))
 	// retrieves already existing merkle tree
 	mt, err = utils.RetrieveMerkleTree()
 	if err != nil {
@@ -81,6 +84,11 @@ func VerifyFnTrustValue(respWriter http.ResponseWriter, req *http.Request) {
 		utils.SendErrorResponse(respWriter, errResponse)
 		return
 	}
+
+	//:TODO testing body
+	bt, _ := json.Marshal(function)
+	fmt.Println(string(bt))
+
 	// retrieves already existing merkle tree
 	mt, err = utils.RetrieveMerkleTree()
 	if err != nil {
