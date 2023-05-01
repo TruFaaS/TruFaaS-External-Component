@@ -2,9 +2,14 @@ package main
 
 import (
 	"bytes"
+	"crypto/ecdsa"
+	"crypto/elliptic"
+	cryptoRand "crypto/rand"
 	"encoding/csv"
+	"encoding/hex"
 	"encoding/json"
 	"fmt"
+	"github.com/TruFaaS/TruFaaS/constants"
 	"github.com/TruFaaS/TruFaaS/fission"
 	"math/rand"
 	"net/http"
@@ -21,6 +26,15 @@ func main() {
 
 	fnInfo := readInfo()
 
+	// Generate a private key
+	privKey, _ := ecdsa.GenerateKey(elliptic.P256(), cryptoRand.Reader)
+
+	// Get the public key from the private key
+	pubKey := privKey.PublicKey
+
+	pubKeyBytes := append(pubKey.X.Bytes(), pubKey.Y.Bytes()...)
+	pubKeyHex := hex.EncodeToString(pubKeyBytes)
+
 	// Loop through the values in the slice
 	for _, f := range noOfFunctions {
 		for i := 0; i < noOfRuns; i++ {
@@ -33,7 +47,7 @@ func main() {
 			creationTime := createTestFunction(&fnInfo, apiURL)
 
 			//run 'f'th function
-			runTime := runTestFunction(&fnInfo, apiURL)
+			runTime := runTestFunction(&fnInfo, apiURL, pubKeyHex)
 			cleanUp(apiURL)
 
 			writeToCSV(f, i, creationTime, runTime)
@@ -102,7 +116,7 @@ func createTestFunction(fnInfo *fission.Function, apiURL string) int64 {
 	return elapsed.Microseconds()
 }
 
-func runTestFunction(fnInfo *fission.Function, apiURL string) int64 {
+func runTestFunction(fnInfo *fission.Function, apiURL string, pubKeyHex string) int64 {
 	fnInfo.FunctionInformation.Name = "test"
 	// Send an HTTP POST request with the JSON data in the request body
 	jsonData, err := json.Marshal(fnInfo)
@@ -110,9 +124,24 @@ func runTestFunction(fnInfo *fission.Function, apiURL string) int64 {
 		fmt.Println("Error marshaling JSON:", err)
 		panic(err)
 	}
+	// Create a new request with the appropriate method, URL, and body
+	req, err := http.NewRequest("POST", apiURL+"/fn/verify", bytes.NewBuffer(jsonData))
+	if err != nil {
+		// handle error
+	}
+
+	// Set the Content-Type header to "application/json"
+	req.Header.Set("Content-Type", "application/json")
+	req.Header.Set(constants.InvokerPublicKeyHeader, pubKeyHex)
+
 	start := time.Now() // Record the start time
-	resp, err := http.Post(apiURL+"/fn/verify", "application/json", bytes.NewBuffer(jsonData))
+	// Send the request and get the response
+	resp, err := http.DefaultClient.Do(req)
 	elapsed := time.Since(start)
+	if err != nil {
+		// handle error
+	}
+	defer resp.Body.Close()
 	if err != nil {
 		fmt.Println("Error sending request:", err)
 		panic(err)
