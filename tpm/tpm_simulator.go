@@ -63,7 +63,6 @@ func VerifyMerkleRoot(sim *simulator.Simulator, merkleRoot []byte) (bool, []byte
 	// pcr_new = H(pcr_old | H(data))
 	// The variable hashedContent already contains the H(data) value
 	// Creating a byte array of 32 0's
-	// TODO: replace if the PCR will not be reset
 	zeroByteArray := bytes.Repeat([]byte{0}, 32)
 
 	// Get the SHA256 algorithm
@@ -80,8 +79,6 @@ func VerifyMerkleRoot(sim *simulator.Simulator, merkleRoot []byte) (bool, []byte
 		return true, merkleRoot
 	} else {
 		fmt.Println("PCR value does not match the extended value.")
-		fmt.Println(hashedValue)
-		fmt.Println(pcrValue)
 		return false, nil
 	}
 

@@ -122,5 +122,3 @@ func VerifyFnTrustValue(respWriter http.ResponseWriter, req *http.Request) {
 	}
 
 }
-
-//;TODO add logger later
