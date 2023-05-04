@@ -13,7 +13,6 @@ require Go 1.19 or later
 
 To get started, navigate to the project directory in a terminal and execute the following command:
 ```bash
-go install
 go run github.com/TruFaaS/TruFaaS
 ```
 
