@@ -25,7 +25,9 @@ func (routerConfig *RouterConfig) Initialize(platform constants.FaaSPlatform) {
 
 // Run Starts the router
 func (routerConfig *RouterConfig) Run() {
+	fmt.Println("Server started on port 8080...")
 	log.Fatal(http.ListenAndServe(":8080", routerConfig.Router))
+
 }
 
 // To initialize only specified FaaS platform routes
