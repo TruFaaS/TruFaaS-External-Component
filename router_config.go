@@ -47,7 +47,7 @@ func (routerConfig *RouterConfig) initializeSpecifiedPlatformRoutes() {
 
 // Fission Routes
 func (routerConfig *RouterConfig) initializeFissionRoutes() {
-	fmt.Println("Initializing fission Routes")
+	fmt.Println("Initializing Fission Routes")
 	routerConfig.Router.HandleFunc("/fn/create", fission.CreateFnTrustValue).Methods(http.MethodPost)
 	routerConfig.Router.HandleFunc("/fn/verify", fission.VerifyFnTrustValue).Methods(http.MethodPost)
 
@@ -56,5 +56,6 @@ func (routerConfig *RouterConfig) initializeFissionRoutes() {
 // OpenFaaS Routes
 func (routerConfig *RouterConfig) initializeOpenFaaSRoutes() {
 	fmt.Println("Initializing OpenFaaS Routes")
+	// This is only to show the configurable nature of the API
 
 }

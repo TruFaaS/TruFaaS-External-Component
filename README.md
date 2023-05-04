@@ -1,7 +1,8 @@
 # TruFaaS External Component
-This component is responsible for conducting trust-related calculations and verification in *_TruFaaS_*.
+This artifact contains the source code for the *_TruFaaS External Component_*,
+which is responsible for conducting trust-related calculations and verification in *_TruFaaS_*.
 
-##  Installation Guide
+##  Deployment Guide
 ### Prerequisites
 ``` 
 require Go 1.19 or later
