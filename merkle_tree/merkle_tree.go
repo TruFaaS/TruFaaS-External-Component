@@ -5,6 +5,7 @@ import (
 	"crypto/sha256"
 	"fmt"
 	"hash"
+	"sort"
 )
 
 // MerkleTree represents a Merkle tree
@@ -72,13 +73,12 @@ func (t *MerkleTree) AppendNewContent(content []byte) *MerkleTree {
 	return t
 }
 
-// updateLeafsAndNodes add a new leaf to data structure and clear previously build intermediate nodes
 func updateLeafsAndNodes(leafCount int, nodes []*Node, leaf *Node) (int, []*Node) {
 
 	// This list stores list of leaf objects
 	var newLeafNodes []*Node
 
-	// If there are leafs check if last is a duplicate if so remove it
+	// If there are leafs, check if the last one is a duplicate and remove it
 	if leafCount > 0 && nodes[leafCount-1].Dup {
 		leafCount = leafCount - 1
 	}
@@ -92,7 +92,7 @@ func updateLeafsAndNodes(leafCount int, nodes []*Node, leaf *Node) (int, []*Node
 	newLeafNodes = append(newLeafNodes, leaf)
 	leafCount += 1
 
-	// If odd number of leafIndices are present, duplicates the last leaf
+	// If an odd number of leafIndices is present, duplicate the last leaf
 	if leafCount%2 != 0 {
 		lastLeaf := newLeafNodes[leafCount-1]
 		newLeaf := &Node{
@@ -106,6 +106,12 @@ func updateLeafsAndNodes(leafCount int, nodes []*Node, leaf *Node) (int, []*Node
 		newLeafNodes = append(newLeafNodes, newLeaf)
 		leafCount += 1
 	}
+
+	// Sort the newLeafNodes by hash
+	sort.SliceStable(newLeafNodes, func(i, j int) bool {
+		return bytes.Compare(newLeafNodes[i].Hash, newLeafNodes[j].Hash) < 0
+	})
+
 	return leafCount, newLeafNodes
 }
 
@@ -155,15 +161,8 @@ func buildIntermediate(nodesIndexSlice []int, t *MerkleTree) (int, error) {
 func (t *MerkleTree) VerifyContentHash(content []byte, rootHash []byte) bool {
 
 	// Find the leaf node that contains the matching hash
-	leafNodeIndex := -1                 // No index set
-	hashVal := t.hashByteSlice(content) // Hash the given content
-	for i := 0; i < t.LeafCount; i++ {
-		if bytes.Equal(t.Nodes[i].Hash, hashVal) { // If current hash matches any of leaf hashes
-			leafNodeIndex = i
-			break
-		}
-	}
-	if leafNodeIndex == -1 { // If no leaf found the content verification fails
+	leafNodeIndex, found := binarySearch(t.Nodes[:t.LeafCount], t.hashByteSlice(content))
+	if !found {
 		return false
 	}
 
@@ -206,4 +205,23 @@ func (t *MerkleTree) PrintTreeNodes() {
 // NewHashFunc Returns the hash function, this is the only place to be changed to change the hash func
 func NewHashFunc() hash.Hash {
 	return sha256.New()
+}
+
+// Binary search for sorted hash list of leafs
+func binarySearch(nodes []*Node, hashVal []byte) (int, bool) {
+	low := 0
+	high := len(nodes) - 1
+
+	for low <= high {
+		mid := (low + high) / 2
+		if bytes.Equal(nodes[mid].Hash, hashVal) {
+			return mid, true // Found the hash at index mid
+		} else if bytes.Compare(nodes[mid].Hash, hashVal) < 0 {
+			low = mid + 1
+		} else {
+			high = mid - 1
+		}
+	}
+
+	return -1, false // Hash not found
 }
